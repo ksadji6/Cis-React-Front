@@ -8,23 +8,25 @@ const API = axios.create({
     }
 });
 
-//intercepteur de securite
-/*API.interceptors.request.use((config)=>{
-    //on va chercher le token JWT
-    const token = localStorage.getItem('token')
+API.interceptors.request.use((config) => {
+    // 1. On récupère le token
+    const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('user'))?.token;
     
-    //s'il existe, on l'injecte automatiquement dans le navigateur
-    if(token)
-    {
-        config.headers.Authorization = `Bearer ${token}`;
-
+    // 2. On vérifie si on est en train d'appeler la route de login
+    const isLoginRequest = config.url.includes('/api/auth/login');
+    
+    // 3. On n'ajoute le header Authorization QUE si on n'est PAS en train de faire un login
+    if (token && !isLoginRequest) {
+        const cleanToken = token.replace(/^"|"$/g, '');
+        config.headers.Authorization = `Bearer ${cleanToken}`;
     }
+    
+    console.log("Axios - Envoi vers :", config.url);
+    console.log("Axios - Headers :", config.headers);
+    
     return config;
-}, (error) => {
-    return Promise.reject(error)
-
-});*/
-// Temporairement, dans api.js, remplace l'intercepteur par celui-ci :
+}, (error) => Promise.reject(error));
+/*
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('user'))?.token;
     
@@ -39,5 +41,5 @@ API.interceptors.request.use((config) => {
     console.log("Axios - Headers :", config.headers);
     
     return config;
-}, (error) => Promise.reject(error));
+}, (error) => Promise.reject(error));*/
 export default API;

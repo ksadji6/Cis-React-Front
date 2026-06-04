@@ -1,26 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/projectService';
 import { userService } from '../services/userService';
 
 function ChefProjetDashboard() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [listeUsers, setListeUsers] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // session utilisateur
-  const userString = localStorage.getItem('user');
-  const userData = userString ? JSON.parse(userString) : null;
-  const prenom = userData?.user?.prenom || 'Chef';
-  const nom = userData?.user?.nom || 'Projet';
-
-  // declaration de handleLogout au bon endroit
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
 
   // charger toutes les donnees
   useEffect(() => {
@@ -74,35 +61,10 @@ function ChefProjetDashboard() {
   const chargeTravailParIngenieur = stats?.chargeTravailParIngenieur || {};
 
   return (
-    <div style={{ display: 'flex', fontFamily: 'Arial', backgroundColor: '#f0f2f5', minHeight: '100vh', margin: 0, color: '#1e293b' }}>
-      
-      {/* structure sidebar gauche */}
-      <div style={{ width: '260px', backgroundColor: '#1e293b', color: '#fff', display: 'flex', flexDirection: 'column', padding: '20px', boxSizing: 'border-box' }}>
-        
-        {/* profil de la sidebar */}
-        <div style={{ textAlign: 'center', paddingBottom: '20px', borderBottom: '1px solid #334155', marginBottom: '20px' }}>
-          <div style={{ width: '70px', height: '70px', borderRadius: '50%', backgroundColor: '#475569', margin: '0 auto 10px auto', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>👨‍💼</div>
-          <h3 style={{ margin: '5px 0', fontSize: '16px' }}>{prenom} {nom}</h3>
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Chef de Projet</span>
-        </div>
-
-        {/* liens du menu */}
-        <h4 style={{ color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px 0' }}>Navigation</h4>
-        <button onClick={() => navigate('/cprojet/dashboard')} style={{ width: '100%', padding: '12px', textAlign: 'left', background: '#334155', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>📊 Dashboard</button>
-        <button onClick={() => navigate('/admin/projects/create')} style={{ width: '100%', padding: '12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: '6px', color: '#cbd5e1', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>🆕 Initialiser Projet</button>
-        <button onClick={() => navigate('/admin/projects/list')} style={{ width: '100%', padding: '12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: '6px', color: '#cbd5e1', fontWeight: 'bold', cursor: 'pointer', marginBottom: 'auto' }}>📋 Affectation Tâches</button>
-
-        {/* deconnexion */}
-        <button onClick={handleLogout} style={{ width: '100%', padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Se déconnecter</button>
-      </div>
-
-      {/* contenu principal a droite */}
-      <div style={{ flex: 1, padding: '25px', boxSizing: 'border-box', overflowY: 'auto' }}>
-        
-        <div style={{ marginBottom: '25px' }}>
+    <div style={{ marginBottom: '25px' }}>
           <h2 style={{ margin: 0, fontSize: '24px' }}>Direction des Déploiements d'Intégration</h2>
           {error && <p style={{ color: 'red', margin: '5px 0 0 0' }}>{error}</p>}
-        </div>
+        
 
         {/* blocs kpi */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '25px' }}>
@@ -199,7 +161,7 @@ function ChefProjetDashboard() {
         </div>
 
       </div>
-    </div>
+    
   );
 };
 export default ChefProjetDashboard;

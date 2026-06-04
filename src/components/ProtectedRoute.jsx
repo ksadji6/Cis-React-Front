@@ -26,6 +26,16 @@ function ProtectedRoute({ children, allowedRoles})
         return <Navigate to="/" replace />;
     }
 
+
+    const user = userData.user;
+
+    // --- NOUVEAU : Blocage forcé si première connexion ---
+    if (user?.firstLogin === true) {
+        return <Navigate to="/update-password" replace />;
+    }
+
+    
+
     //s'il est connecté et a le bon rôle , on le laisse poursuivre et voir la page
     return children;
 }

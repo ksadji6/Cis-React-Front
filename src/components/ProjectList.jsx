@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/projectService';
 
@@ -8,11 +8,11 @@ export default function ProjectList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // session utilisateur
-  const userString = localStorage.getItem('user');
-  const userData = userString ? JSON.parse(userString) : null;
-  const prenom = userData?.user?.prenom || 'Chef';
-  const nom = userData?.user?.nom || 'Projet';
+  // etats pour les filtres 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('TOUS');
+
+  
 
   // charger la liste des projets depuis la bdd
   const loadProjects = async () => {
@@ -36,13 +36,21 @@ export default function ProjectList() {
     }
   };
 
-
   useEffect(() => {
     const fetchPortefeuille = async () => {
       await loadProjects();
     };
     fetchPortefeuille();
   }, []); 
+
+  // Logique de filtrage (useMemo pour optimiser)
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchesSearch = p.titre.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'TOUS' || p.categorie === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [projects, searchTerm, categoryFilter]);
 
   // declencher le changement de phase reel en bdd
   const handleLaunchProject = async (projectId) => {
@@ -62,10 +70,7 @@ export default function ProjectList() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
+  
 
   if (loading) {
     return (
@@ -76,81 +81,65 @@ export default function ProjectList() {
   }
 
   return (
-    <div style={{ display: 'flex', fontFamily: 'Arial', backgroundColor: '#f0f2f5', minHeight: '100vh', margin: 0, color: '#1e293b' }}>
-      
-      {/* structure sidebar gauche identique au dashboard */}
-      <div style={{ width: '260px', backgroundColor: '#1e293b', color: '#fff', display: 'flex', flexDirection: 'column', padding: '20px', boxSizing: 'border-box' }}>
-        <div style={{ textAlign: 'center', paddingBottom: '20px', borderBottom: '1px solid #334155', marginBottom: '20px' }}>
-          <div style={{ width: '70px', height: '70px', borderRadius: '50%', backgroundColor: '#475569', margin: '0 auto 10px auto', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>👨‍💼</div>
-          <h3 style={{ margin: '5px 0', fontSize: '16px' }}>{prenom} {nom}</h3>
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Chef de Projet</span>
-        </div>
-
-        <h4 style={{ color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px 0' }}>Navigation</h4>
-        <button onClick={() => navigate('/cprojet/dashboard')} style={{ width: '100%', padding: '12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: '6px', color: '#cbd5e1', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>📊 Dashboard</button>
-        <button onClick={() => navigate('/admin/projects/create')} style={{ width: '100%', padding: '12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: '6px', color: '#cbd5e1', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>🆕 Initialiser Projet</button>
-        <button onClick={() => navigate('/admin/projects/list')} style={{ width: '100%', padding: '12px', textAlign: 'left', background: '#334155', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: 'bold', cursor: 'pointer', marginBottom: 'auto' }}>📋 Affectation Tâches</button>
-
-        <button onClick={handleLogout} style={{ width: '100%', padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Se déconnecter</button>
+    <div style={{ marginBottom: '25px' }}>
+        <h2 style={{ margin: 0, fontSize: '24px' }}>Portefeuille Général des Projets</h2>
+    
+      {/* Barre de Filtres */}
+      <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'flex', gap: '15px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <input type="text" placeholder="Rechercher par titre..." onChange={(e) => setSearchTerm(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', flex: 1 }} />
+        <select onChange={(e) => setCategoryFilter(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+          <option value="TOUS">Toutes catégories</option>
+          <option value="SECURITE_RESEAUX">Sécurité & Réseaux</option>
+          <option value="INFRA_SYSTEME">Infrastructure Système</option>
+        </select>
       </div>
 
-      {/* contenu principal a droite */}
-      <div style={{ flex: 1, padding: '25px', boxSizing: 'border-box', overflowY: 'auto' }}>
+      <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ marginTop: 0, fontSize: '18px' }}>Sélectionner un projet pour gérer ses jalons</h3>
         
-        <div style={{ marginBottom: '25px' }}>
-          <h2 style={{ margin: 0, fontSize: '24px' }}>Portefeuille Général des Projets</h2>
-        </div>
+        {error && <p style={{ color: '#ef4444', fontWeight: 'bold' }}>{error}</p>}
 
-        <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '18px' }}>Sélectionner un projet pour gérer ses jalons</h3>
-          
-          {error && <p style={{ color: '#ef4444', fontWeight: 'bold' }}>{error}</p>}
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-            <thead>
-              <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0', textAlign: 'left', fontSize: '14px' }}>
-                <th style={{ padding: '12px' }}>id bdd</th>
-                <th style={{ padding: '12px' }}>nom du projet</th>
-                <th style={{ padding: '12px' }}>phase actuelle</th>
-                <th style={{ padding: '12px' }}>avancement moyen</th>
-                <th style={{ padding: '12px', textAlign: 'center' }}>actions cp</th>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0', textAlign: 'left', fontSize: '14px' }}>
+              <th style={{ padding: '12px' }}>id bdd</th>
+              <th style={{ padding: '12px' }}>nom du projet</th>
+              <th style={{ padding: '12px' }}>phase actuelle</th>
+              <th style={{ padding: '12px' }}>avancement moyen</th>
+              <th style={{ padding: '12px', textAlign: 'center' }}>actions cp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProjects.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>aucun projet trouvé.</td>
               </tr>
-            </thead>
-            <tbody>
-              {projects.length === 0 ? (
-                <tr>
-                  <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>aucun projet disponible dans la base de données.</td>
+            ) : (
+              filteredProjects.map((project) => (
+                <tr key={project.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '14px' }}>
+                  <td style={{ padding: '14px', fontWeight: 'bold', color: '#64748b' }}>{project.id}</td>
+                  <td style={{ padding: '14px', fontWeight: 'bold' }}>{project.titre}</td>
+                  <td style={{ padding: '14px' }}>
+                    <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: project.phase === 'PROJET' ? '#ddbefe' : '#fef3c7', color: project.phase === 'PROJET' ? '#6b21a8' : '#92400e' }}>
+                      {project.phase}
+                    </span>
+                  </td>
+                  <td style={{ padding: '14px', fontWeight: 'bold', color: '#3182ce' }}>{project.avancement || 0}%</td>
+                  <td style={{ padding: '14px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                    {project.phase === 'PRE_PROJET' ? (
+                      <button onClick={() => handleLaunchProject(project.id)} style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>lancer le projet</button>
+                    ) : (
+                      <button onClick={() => navigate(`/admin/projects/${project.id}/tasks`)} style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>gerer les taches</button>
+                    )}
+                    <button disabled style={{ padding: '6px 12px', background: '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'not-allowed', fontSize: '12px' }}>documents</button>
+                  </td>
                 </tr>
-              ) : (
-                projects.map((project) => (
-                  <tr key={project.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '14px' }}>
-                    {/* affichage des vrais attributs du backend */}
-                    <td style={{ padding: '14px', fontWeight: 'bold', color: '#64748b' }}>{project.id}</td>
-                    <td style={{ padding: '14px', fontWeight: 'bold' }}>{project.titre}</td>
-                    <td style={{ padding: '14px' }}>
-                      <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: project.phase === 'PROJET' ? '#ddbefe' : '#fef3c7', color: project.phase === 'PROJET' ? '#6b21a8' : '#92400e' }}>
-                        {project.phase}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px', fontWeight: 'bold', color: '#3182ce' }}>{project.avancement || 0}%</td>
-                    <td style={{ padding: '14px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      
-                      {project.phase === 'PRE_PROJET' ? (
-                        <button onClick={() => handleLaunchProject(project.id)} style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>lancer le projet</button>
-                      ) : (
-                        <button onClick={() => navigate(`/admin/projects/${project.id}/tasks`)} style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>gerer les taches</button>
-                      )}
-
-                      <button disabled style={{ padding: '6px 12px', background: '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'not-allowed', fontSize: '12px' }}>documents</button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
+    
   );
 }

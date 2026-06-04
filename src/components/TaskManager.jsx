@@ -23,6 +23,7 @@ export default function TaskManager() {
   const userData = userString ? JSON.parse(userString) : null;
   const prenom = userData?.user?.prenom || 'Chef';
   const nom = userData?.user?.nom || 'Projet';
+  const userConnectedId = userData?.user?.id;
 
   // effect asynchrone autonome pour le chargement initial des dependances du projet
   const loadPageData = async () => {
@@ -108,6 +109,17 @@ const handleAddTask = async (e) => {
         await loadPageData(); 
     }
 };
+
+// Fonction pour mettre à jour le statut
+const handleUpdateStatus = async (taskId, newStatus) => {
+  try {
+    await projectService.updateTaskStatus(taskId, newStatus);
+    alert("Statut mis à jour avec succès !");
+    await loadPageData(); // Recharge la liste
+  } catch (err) {
+    alert("Erreur lors de la mise à jour du statut. ", err);
+  }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -214,16 +226,25 @@ const handleAddTask = async (e) => {
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>{task.intitule}</td>
                       <td style={{ padding: '12px' }}>{obtenirNomIngenieur(task.ingenieurId)}</td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <span style={{ 
-                          padding: '3px 8px', 
-                          borderRadius: '4px', 
-                          fontSize: '11px', 
-                          fontWeight: 'bold',
-                          background: task.statut === 'TERMINE' ? '#d1fae5' : task.statut === 'EN_COURS' ? '#dbeafe' : '#f3f4f6',
-                          color: task.statut === 'TERMINE' ? '#065f46' : task.statut === 'EN_COURS' ? '#1e40af' : '#374151'
-                        }}>
-                          {task.statut}
-                        </span>
+                        {userConnectedId === task.ingenieurId ? (
+                          <select 
+                            value={task.statut} 
+                            onChange={(e) => handleUpdateStatus(task.id, e.target.value)}
+                            style={{ fontSize: '11px', padding: '4px', cursor: 'pointer' }}
+                          >
+                            <option value="A_FAIRE">À FAIRE</option>
+                            <option value="EN_COURS">EN COURS</option>
+                            <option value="TERMINE">TERMINE</option>
+                          </select>
+                        ) : (
+                          <span style={{ 
+                            padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold',
+                            background: task.statut === 'TERMINE' ? '#d1fae5' : task.statut === 'EN_COURS' ? '#dbeafe' : '#f3f4f6',
+                            color: task.statut === 'TERMINE' ? '#065f46' : task.statut === 'EN_COURS' ? '#1e40af' : '#374151'
+                          }}>
+                            {task.statut}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))

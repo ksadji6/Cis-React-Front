@@ -54,5 +54,24 @@ export const projectService = {
     updateTaskStatus: async (taskId, status) => {
         const response = await API.put(`/api/projects/tasks/${taskId}/status?status=${status}`);
         return response.data;
+    },
+
+    //liste des taches d'un ingénieur
+    getMesTaches: async (ingenieurId) => {
+    try {
+        const response = await API.get(`/api/projects/tasks/ingenieur/${ingenieurId}`);
+        return response.data;
+    } catch (err) {
+        // Si le backend répond 403, on redirige vers le changement de mot de passe
+        if (err.response && err.response.status === 403) {
+            console.warn("Accès restreint : Redirection vers le changement de mot de passe.");
+            window.location.href = "/update-password";
+            // On retourne un tableau vide pour que le composant ne plante pas en attendant
+            return [];
+        }
+        // Sinon, on laisse remonter l'erreur pour qu'elle soit affichée dans le composant
+        throw err;
     }
+}
+
 };
