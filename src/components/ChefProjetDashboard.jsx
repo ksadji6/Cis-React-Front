@@ -1,33 +1,29 @@
 import { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
 import { userService } from '../services/userService';
+import { StatCard } from './dashboard/StatCard';
+import { useNavigate } from 'react-router-dom';
+import '../Dashboard.css';
 
 function ChefProjetDashboard() {
   const [stats, setStats] = useState(null);
-  const [listeUsers, setListeUsers] = useState([]); 
+  const [listeUsers, setListeUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-
-  // charger toutes les donnees
   useEffect(() => {
     const loadAllDashboardData = async () => {
       try {
         setLoading(true);
-        
-        const statsResponse = await projectService.getDashboardStats();
-        if (statsResponse) {
-          setStats(statsResponse);
-        }
-
-        const usersResponse = await userService.getAll();
-        if (usersResponse && Array.isArray(usersResponse)) {
-          setListeUsers(usersResponse);
-        }
-
+        const [statsResponse, usersResponse] = await Promise.all([
+          projectService.getDashboardStats(),
+          userService.getAll()
+        ]);
+        if (statsResponse) setStats(statsResponse);
+        if (usersResponse && Array.isArray(usersResponse)) setListeUsers(usersResponse);
       } catch (err) {
-        console.error("erreur chargement donnees dashboard :", err);
-        setError("impossible de charger completement les metriques.");
+        setError("Impossible de charger les métriques. ",err);
       } finally {
         setLoading(false);
       }
@@ -35,133 +31,99 @@ function ChefProjetDashboard() {
     loadAllDashboardData();
   }, []);
 
-  // trouver le nom de l'ingenieur a partir de son id
   const obtenirNomIngenieur = (idStr) => {
-    if (idStr === "Non assigne") return "Non assigné";
-    const idNum = parseInt(idStr, 10);
-    const trouve = listeUsers.find(u => u.id === idNum);
+    const trouve = listeUsers.find(u => u.id === parseInt(idStr, 10));
     return trouve ? `${trouve.prenom} ${trouve.nom}` : `Ingénieur ${idStr}`;
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Arial', color: '#4a5568' }}>
-        <h2>calcul et consolidation des indicateurs decisionnels...</h2>
-      </div>
-    );
-  }
+  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Calcul et consolidation des indicateurs...</div>;
 
-  // extraction des donnees securisee avec des valeurs par defaut
-  const totalProjets = stats?.totalProjets || 0;
-  const projetsBloques = stats?.projetsBloques || 0;
-  const avancementMoyenGlobal = stats?.avancementMoyenGlobal ? Math.round(stats.avancementMoyenGlobal) : 0;
-  const repartitionParCategorie = stats?.repartitionParCategorie || { "SECURITE_RESEAUX": 0, "INFRA_SYSTEME": 0 };
-  const projetsParPhase = stats?.projetsParPhase || { "PRE_PROJET": 0, "PROJET": 0, "POST_PROJET": 0 };
-  const avancementParProjet = stats?.avancementParProjet || {};
-  const chargeTravailParIngenieur = stats?.chargeTravailParIngenieur || {};
+  const { totalProjets, projetsBloques, avancementMoyenGlobal, repartitionParCategorie, projetsParPhase, avancementParProjet, chargeTravailParIngenieur } = {
+    totalProjets: stats?.totalProjets || 0,
+    projetsBloques: stats?.projetsBloques || 0,
+    avancementMoyenGlobal: stats?.avancementMoyenGlobal ? Math.round(stats.avancementMoyenGlobal) : 0,
+    repartitionParCategorie: stats?.repartitionParCategorie || { "SECURITE_RESEAUX": 0, "INFRA_SYSTEME": 0 },
+    projetsParPhase: stats?.projetsParPhase || { "PRE_PROJET": 0, "PROJET": 0, "POST_PROJET": 0 },
+    avancementParProjet: stats?.avancementParProjet || {},
+    chargeTravailParIngenieur: stats?.chargeTravailParIngenieur || {}
+  };
 
   return (
-    <div style={{ marginBottom: '25px' }}>
-          <h2 style={{ margin: 0, fontSize: '24px' }}>Direction des Déploiements d'Intégration</h2>
-          {error && <p style={{ color: 'red', margin: '5px 0 0 0' }}>{error}</p>}
+    <div className="dashboard-container">
+      <header style={{ marginBottom: '30px' }}>
+        <h2 style={{ fontSize: '28px', color: '#0f172a', margin: 0 }}>Tableau de Bord - Pilotage Projet</h2>
+      </header>
+
+      {/* 1. KPIs */}
+      <section className="kpi-grid">
+        <StatCard title="Total Projets" value={totalProjets} color="#3b82f6" icon="📁" />
+        <StatCard title="Dossiers Bloqués" value={projetsBloques} color="#ef4444" icon="⚠️" />
+        <StatCard title="Avancement Global" value={`${avancementMoyenGlobal}%`} color="#06b6d4" icon="🚀" />
+      </section>
+
+      {/* 2. GRAPHIQUES */}
+      <section className="main-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '25px' }}>
         
-
-        {/* blocs kpi */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '25px' }}>
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #3b82f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Projets</span>
-            <h3 style={{ margin: '5px 0 0 0', fontSize: '28px' }}>{totalProjets}</h3>
-          </div>
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #ef4444', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Dossiers Bloqués</span>
-            <h3 style={{ margin: '5px 0 0 0', fontSize: '28px', color: '#ef4444' }}>{projetsBloques}</h3>
-          </div>
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', borderLeft: '5px solid #06b6d4', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Avancement Moyen Global</span>
-            <h3 style={{ margin: '5px 0 0 0', fontSize: '28px' }}>{avancementMoyenGlobal}%</h3>
-          </div>
-        </div>
-
-        {/* grille des graphiques */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
-          
-          {/* graphique 1 : categories */}
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>1. Répartition par Catégorie Technologique</h4>
+        {/* Colonne Gauche : Graphiques 1 & 2 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+          <div className="card">
+            <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>1. Répartition Technologique</h4>
             <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '140px', borderBottom: '2px solid #cbd5e1' }}>
-              {Object.entries(repartitionParCategorie).map(([cat, val]) => {
-                const maxVal = Math.max(...Object.values(repartitionParCategorie), 1);
-                const heightBar = (val / maxVal) * 110;
-                return (
-                  <div key={cat} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', marginBottom: '4px', fontWeight: 'bold' }}>{val}</span>
-                    <div style={{ width: '50px', height: `${heightBar}px`, backgroundColor: '#3b82f6', borderRadius: '4px 4px 0 0' }}></div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '8px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>
-              <span>Sécurité & Réseaux</span>
-              <span>Infrastructure Système</span>
-            </div>
-          </div>
-
-          {/* graphique 2 : circulaire des phases */}
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>2. Analyse des Dossiers par Phase</h4>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '25px', height: '160px' }}>
-              <div style={{ width: '110px', height: '110px', borderRadius: '50%', background: 'conic-gradient(#f59e0b 0% 33%, #3b82f6 33% 66%, #10b981 66% 100%)', boxShadow: 'inset 0 0 0 22px white' }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', fontWeight: '600' }}>
-                <div><span style={{ color: '#f59e0b' }}>■</span> PRE_PROJET : {projetsParPhase.PRE_PROJET || 0}</div>
-                <div><span style={{ color: '#3b82f6' }}>■</span> PROJET : {projetsParPhase.PROJET || 0}</div>
-                <div><span style={{ color: '#10b981' }}>■</span> POST_PROJET : {projetsParPhase.POST_PROJET || 0}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* graphique 3 : avancement des projets */}
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>3. Progression Individuelle des Livrables</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '180px', overflowY: 'auto' }}>
-              {Object.entries(avancementParProjet).map(([titre, avancement]) => (
-                <div key={titre}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
-                    <span>{titre}</span>
-                    <span>{avancement}%</span>
-                  </div>
-                  <div style={{ width: '100%', backgroundColor: '#e2e8f0', height: '12px', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{ width: `${avancement}%`, backgroundColor: avancement === 100 ? '#10b981' : '#3b82f6', height: '100%' }}></div>
-                  </div>
+              {Object.entries(repartitionParCategorie).map(([cat, val]) => (
+                <div key={cat} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{val}</span>
+                  <div style={{ width: '50px', height: `${(val / Math.max(...Object.values(repartitionParCategorie), 1)) * 100}px`, backgroundColor: '#3b82f6', borderRadius: '4px 4px 0 0' }}></div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* graphique 4 : charge de travail par ingenieur */}
-          <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>4. Charge Opérationnelle par Ingénieur</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '180px', overflowY: 'auto' }}>
-              {Object.entries(chargeTravailParIngenieur).map(([ingId, statutsMap]) => {
-                const totalTaches = Object.values(statutsMap).reduce((a, b) => a + b, 0);
-                return (
-                  <div key={ingId} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 'bold', minWidth: '120px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {obtenirNomIngenieur(ingId)}
-                    </span>
-                    <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '18px', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
-                      <div style={{ width: `${Math.min(totalTaches * 20, 100)}%`, backgroundColor: '#8b5cf6', height: '100%' }}></div>
-                      <span style={{ position: 'absolute', right: '6px', top: '1px', fontSize: '10px', fontWeight: 'bold' }}>{totalTaches} tâche(s)</span>
-                    </div>
-                  </div>
-                );
-              })}
+          <div className="card">
+            <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>2. Analyse par Phase</h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+              <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'conic-gradient(#f59e0b 0% 33%, #3b82f6 33% 66%, #10b981 66% 100%)' }}></div>
+              <div style={{ fontSize: '12px', fontWeight: '600' }}>
+                <div><span style={{ color: '#f59e0b' }}>■</span> PRE_PROJET: {projetsParPhase.PRE_PROJET}</div>
+                <div><span style={{ color: '#3b82f6' }}>■</span> PROJET: {projetsParPhase.PROJET}</div>
+                <div><span style={{ color: '#10b981' }}>■</span> POST_PROJET: {projetsParPhase.POST_PROJET}</div>
+              </div>
             </div>
           </div>
-
         </div>
 
-      </div>
-    
+        {/* Colonne Droite : Progression */}
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <h4 style={{ margin: '0 0 20px 0', fontSize: '15px' }}>3. Progression Individuelle (Top 10)</h4>
+          {Object.entries(avancementParProjet).slice(0, 10).map(([titre, av]) => (
+            <div key={titre} style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}><span>{titre}</span><span>{av}%</span></div>
+              <div style={{ width: '100%', background: '#e2e8f0', height: '8px', borderRadius: '4px' }}>
+                <div style={{ width: `${av}%`, background: '#3b82f6', height: '100%', borderRadius: '4px' }}></div>
+              </div>
+            </div>
+          ))}
+          {Object.entries(avancementParProjet).length > 10 && (
+            <button onClick={() => navigate('/admin/projects/list')} style={{ background: 'none', border: 'none', color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer', fontSize: '12px' }}>
+              + Voir tout le portefeuille
+            </button>
+          )}
+        </div>
+
+        {/* Ligne du bas : Charge par Ingénieur (span 3) */}
+        <div className="card" style={{ gridColumn: 'span 3' }}>
+          <h4 style={{ margin: '0 0 15px 0', fontSize: '15px' }}>4. Charge Opérationnelle par Ingénieur</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+            {Object.entries(chargeTravailParIngenieur).map(([ingId, map]) => (
+              <div key={ingId} style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{obtenirNomIngenieur(ingId)}</div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>{Object.values(map).reduce((a, b) => a + b, 0)} tâches actives</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </section>
+    </div>
   );
-};
+}
+
 export default ChefProjetDashboard;

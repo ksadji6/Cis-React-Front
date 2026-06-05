@@ -10,7 +10,9 @@ export default function CreateProjectForm() {
   const [error, setError] = useState('');
   const styleInput = { width: '100%', padding: '8px', marginTop: '5px' };
   const styleButton = { width: '100%', padding: '10px', background: '#28A745', color: 'white', border: 'none', cursor: 'pointer' };
-
+  const userString = localStorage.getItem('user');
+  const currentUser = userString ? JSON.parse(userString) : null;
+  const isChefProjet = currentUser?.user?.role === 'CHEF_PROJET';   
   const [formData, setFormData] = useState({
     titre: '',
     description: '',
@@ -34,23 +36,58 @@ export default function CreateProjectForm() {
     fetchUsers();
   }, []);
 
+useEffect(() => {
+  if (isChefProjet && currentUser?.user?.id) {
+    setFormData(prev => ({ ...prev, chefProjetId: currentUser.user.id }));
+  }
+}, [isChefProjet, currentUser]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
 
+    // 1. Récupération sécurisée
+    const user = JSON.parse(localStorage.getItem('user'));
+    const loggedInId = user?.user?.id; 
+
+    // 2. Calcul du chefIdFinal
+    let chefIdFinal = isChefProjet ? loggedInId : formData.chefProjetId;
+    
+    // 3. Log pour vérifier ce qui se passe VRAIMENT
+    console.log("DEBUG - isChefProjet:", isChefProjet);
+    console.log("DEBUG - ID connecté:", loggedInId);
+    console.log("DEBUG - chefIdFinal:", chefIdFinal);
+
+    // 4. Force la conversion en nombre de manière sûre
+    const finalChefIdParsed = parseInt(chefIdFinal, 10);
+
+    if (isNaN(finalChefIdParsed)) {
+      setError("Erreur : Impossible d'assigner le Chef de Projet. ID invalide.");
+      setIsSubmitting(false);
+      return;
+    }    
+    
     // Formatage pour correspondre au DTO Java (ProjectRequestDTO)
     const payload = {
       titre: formData.titre,
       description: formData.description,
       categorie: formData.categorie,
       presalesId: parseInt(formData.presalesId, 10),
-      chefProjetId: parseInt(formData.chefProjetId, 10),
+      chefProjetId: finalChefIdParsed,
       superviseurId: parseInt(formData.superviseurId, 10),
       budget: parseFloat(formData.budget),
       dateFinEstimee: formData.dateFinEstimee ? `${formData.dateFinEstimee}T00:00:00` : null
     };
+    // DEBUG : Vérifions avant l'appel API
+    console.log("PAYLOAD FINAL :", payload);
 
+    // Vérification de sécurité avant envoi
+    if (isNaN(payload.chefProjetId) || !payload.chefProjetId) {
+       setError("Erreur : Impossible de déterminer le Chef de Projet. Vérifiez votre connexion.");
+       setIsSubmitting(false);
+       return;
+    }
     try {
       await projectService.create(payload);
       alert("Projet initialisé avec succès !");
@@ -118,13 +155,25 @@ export default function CreateProjectForm() {
 
         <div style={{ marginBottom: '15px' }}>
           <label>Chef de Projet :</label>
-          <select required style={styleInput} onChange={(e) => setFormData({...formData, chefProjetId: e.target.value})}>
-            <option value="">Choisir...</option>
-            {collaborateurs.filter(u => u.role === 'CHEF_PROJET').map(u => 
+          {isChefProjet ? (
+            // Affichage fixe si c'est le CP lui-même qui crée
+            <div style={{ ...styleInput, background: '#f8f9fa', border: '1px solid #ccc' }}>
+              {currentUser.user.prenom} {currentUser.user.nom}  (Automatique)
+            </div>
+              ) : (
+            // Liste déroulante si c'est un Admin
+            <select 
+              required 
+              style={styleInput} 
+              onChange={(e) => setFormData({...formData, chefProjetId: e.target.value})}
+            >
+              <option value="">Choisir...</option>
+              {collaborateurs.filter(u => u.role === 'CHEF_PROJET').map(u => 
                 <option key={u.id} value={u.id}>{u.nom} {u.prenom}</option>
-            )}
-          </select>
-        </div>
+              )}
+            </select>
+      )}
+    </div>
 
         <div style={{ marginBottom: '15px' }}>
           <label>Superviseur :</label>
