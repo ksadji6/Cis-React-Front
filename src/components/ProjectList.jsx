@@ -1,145 +1,181 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/projectService';
+import { userService } from '../services/userService';
+
+const PHASE_BADGE = {
+  PRE_PROJET: { cls: 'badge-orange', label: 'Pré-projet' },
+  PROJET: { cls: 'badge-green', label: 'En cours' },
+  POST_PROJET: { cls: 'badge-blue', label: 'Clôturé' },
+};
+
+const CAT_LABEL = {
+  SECURITE_RESEAUX: 'Sécurité & Réseaux',
+  INFRASTRUCTURE_SYSTEME: 'Infrastructure Système',
+};
 
 export default function ProjectList() {
-  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  // etats pour les filtres 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('TOUS');
-
-  
-
-  // charger la liste des projets depuis la bdd
-  const loadProjects = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      // appel de ton nouveau getmapping du backend
-      const projetsReels = await projectService.getAllProjects(); 
-      
-      if (projetsReels && Array.isArray(projetsReels)) {
-        setProjects(projetsReels);
-      } else {
-        setProjects([]);
-      }
-    } catch (err) {
-      console.error("erreur portefeuille projets :", err);
-      setError("impossible de charger le portefeuille de projets.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [search, setSearch] = useState('');
+  const [filterPhase, setFilterPhase] = useState('');
+  const [filterCat, setFilterCat] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchPortefeuille = async () => {
-      await loadProjects();
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const [p, u] = await Promise.all([projectService.getAllProjects(), userService.getAll()]);
+        if (isMounted) {
+          setProjects(Array.isArray(p) ? p : []);
+          setUsers(Array.isArray(u) ? u : []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
-    fetchPortefeuille();
-  }, []); 
+    load();
+    return () => { isMounted = false; };
+  }, []);
 
-  // Logique de filtrage (useMemo pour optimiser)
-  const filteredProjects = useMemo(() => {
-    return projects.filter(p => {
-      const matchesSearch = p.titre.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'TOUS' || p.categorie === categoryFilter;
-      return matchesSearch && matchesCategory;
-    });
-  }, [projects, searchTerm, categoryFilter]);
+  const userName = (id) => {
+    const u = users.find(u => u.id === id);
+    return u ? `${u.prenom} ${u.nom}` : '—';
+  };
 
-  // declencher le changement de phase reel en bdd
-  const handleLaunchProject = async (projectId) => {
+  const filtered = projects.filter(p => {
+    const q = search.toLowerCase();
+    const matchSearch = (p.titre || p.nom || '').toLowerCase().includes(q);
+    const matchPhase = filterPhase ? p.phase === filterPhase : true;
+    const matchCat = filterCat ? p.categorie === filterCat : true;
+    return matchSearch && matchPhase && matchCat;
+  });
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Supprimer ce projet ?')) return;
     try {
-      setError('');
-      
-      // appel de ton put avec le vrai id du projet
-      await projectService.lancerProjet(projectId);
-      
-      alert(`le projet ID ${projectId} est maintenant en phase active.`);
-      loadProjects();
-    } catch (err) {
-      console.error("erreur lancement projet :", err);
-      const backendMessage = err.response?.data?.message || "un prerequis metier a echoue.";
-      alert(`impossible de lancer le projet : ${backendMessage}`);
-      setError(`erreur projet ${projectId} : ${backendMessage}`);
+      await projectService.delete(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+    } catch {
+      alert('Erreur lors de la suppression.');
     }
   };
 
-  
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Arial', color: '#4a5568' }}>
-        <h2>chargement du portefeuille de projets cis...</h2>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ marginBottom: '25px' }}>
-        <h2 style={{ margin: 0, fontSize: '24px' }}>Portefeuille Général des Projets</h2>
-    
-      {/* Barre de Filtres */}
-      <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'flex', gap: '15px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <input type="text" placeholder="Rechercher par titre..." onChange={(e) => setSearchTerm(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', flex: 1 }} />
-        <select onChange={(e) => setCategoryFilter(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-          <option value="TOUS">Toutes catégories</option>
+    <div>
+      <div className="cis-page-header">
+        <div>
+          <h1 className="cis-page-title">Projets & Tâches</h1>
+          <p className="cis-page-sub">{projects.length} projet{projects.length > 1 ? 's' : ''} dans le portefeuille</p>
+        </div>
+        <button className="cis-btn cis-btn-primary" onClick={() => navigate('/admin/projects/create')}>
+          <i className="ti ti-plus" aria-hidden="true"></i> Nouveau projet
+        </button>
+      </div>
+
+      {/* Filtres */}
+      <div className="cis-filters">
+        <input
+          className="cis-filter-input"
+          placeholder="🔍  Rechercher un projet..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select className="cis-filter-select" value={filterPhase} onChange={e => setFilterPhase(e.target.value)}>
+          <option value="">Toutes les phases</option>
+          <option value="PRE_PROJET">Pré-projet</option>
+          <option value="PROJET">En cours</option>
+          <option value="POST_PROJET">Clôturé</option>
+        </select>
+        <select className="cis-filter-select" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+          <option value="">Toutes les catégories</option>
           <option value="SECURITE_RESEAUX">Sécurité & Réseaux</option>
-          <option value="INFRA_SYSTEME">Infrastructure Système</option>
+          <option value="INFRASTRUCTURE_SYSTEME">Infrastructure Système</option>
         </select>
       </div>
 
-      <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h3 style={{ marginTop: 0, fontSize: '18px' }}>Sélectionner un projet pour gérer ses jalons</h3>
-        
-        {error && <p style={{ color: '#ef4444', fontWeight: 'bold' }}>{error}</p>}
-
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-          <thead>
-            <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0', textAlign: 'left', fontSize: '14px' }}>
-              <th style={{ padding: '12px' }}>id bdd</th>
-              <th style={{ padding: '12px' }}>nom du projet</th>
-              <th style={{ padding: '12px' }}>phase actuelle</th>
-              <th style={{ padding: '12px' }}>avancement moyen</th>
-              <th style={{ padding: '12px', textAlign: 'center' }}>actions cp</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProjects.length === 0 ? (
+      {loading ? (
+        <div style={{ display:'flex', justifyContent:'center', padding:40 }}>
+          <div style={{ width:32, height:32, border:'3px solid #20ab4b', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}></div>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      ) : (
+        <div className="cis-table-wrap">
+          <table className="cis-table">
+            <thead>
               <tr>
-                <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>aucun projet trouvé.</td>
+                <th>Projet</th>
+                <th>Phase</th>
+                <th>Catégorie</th>
+                <th>Chef de Projet</th>
+                <th>Avancement</th>
+                <th style={{ textAlign:'right' }}>Actions</th>
               </tr>
-            ) : (
-              filteredProjects.map((project) => (
-                <tr key={project.id} style={{ borderBottom: '1px solid #e2e8f0', fontSize: '14px' }}>
-                  <td style={{ padding: '14px', fontWeight: 'bold', color: '#64748b' }}>{project.id}</td>
-                  <td style={{ padding: '14px', fontWeight: 'bold' }}>{project.titre}</td>
-                  <td style={{ padding: '14px' }}>
-                    <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: project.phase === 'PROJET' ? '#ddbefe' : '#fef3c7', color: project.phase === 'PROJET' ? '#6b21a8' : '#92400e' }}>
-                      {project.phase}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px', fontWeight: 'bold', color: '#3182ce' }}>{project.avancement || 0}%</td>
-                  <td style={{ padding: '14px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                    {project.phase === 'PRE_PROJET' ? (
-                      <button onClick={() => handleLaunchProject(project.id)} style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>lancer le projet</button>
-                    ) : (
-                      <button onClick={() => navigate(`/admin/projects/${project.id}/tasks`)} style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>gerer les taches</button>
-                    )}
-                    <button disabled style={{ padding: '6px 12px', background: '#94a3b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'not-allowed', fontSize: '12px' }}>documents</button>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="cis-empty">
+                      <i className="ti ti-folder-off" aria-hidden="true"></i>
+                      Aucun projet trouvé
+                    </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : filtered.map(p => {
+                const avancement = typeof p.avancement === 'number' ? p.avancement : 0;
+                const phase = PHASE_BADGE[p.phase] || { cls: 'badge-gray', label: p.phase };
+                return (
+                  <tr key={p.id}>
+                    <td>
+                      <div style={{ fontWeight:500 }}>{p.titre || p.nom}</div>
+                      {p.description && (
+                        <div style={{ fontSize:11, color:'#aaa', marginTop:2, maxWidth:260, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {p.description}
+                        </div>
+                      )}
+                    </td>
+                    <td><span className={`cis-badge ${phase.cls}`}>{phase.label}</span></td>
+                    <td style={{ fontSize:12, color:'#555' }}>{CAT_LABEL[p.categorie] || p.categorie || '—'}</td>
+                    <td style={{ fontSize:12 }}>{userName(p.chefProjetId)}</td>
+                    <td style={{ minWidth:120 }}>
+                      <div className="cis-progress">
+                        <div className="cis-progress-bar">
+                          <div className={`cis-progress-fill ${avancement >= 100 ? 'fill-green' : avancement >= 50 ? 'fill-blue' : 'fill-orange'}`}
+                            style={{ width:`${avancement}%` }}></div>
+                        </div>
+                        <span className="cis-progress-val" style={{ color: avancement >= 100 ? '#20ab4b' : '#333' }}>
+                          {avancement}%
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display:'flex', justifyContent:'flex-end', gap:6 }}>
+                        <button
+                          className="cis-btn cis-btn-ghost cis-btn-sm"
+                          onClick={() => navigate(`/admin/projects/${p.id}/tasks`)}
+                        >
+                          <i className="ti ti-list-check" aria-hidden="true"></i> Tâches
+                        </button>
+                        <button
+                          className="cis-btn cis-btn-danger cis-btn-sm"
+                          onClick={() => handleDelete(p.id)}
+                        >
+                          <i className="ti ti-trash" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-    
   );
 }

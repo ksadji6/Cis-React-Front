@@ -55,6 +55,15 @@ export const projectService = {
         const response = await API.put(`/api/projects/tasks/${taskId}/status?status=${status}`);
         return response.data;
     },
+    updateTask: async (taskId, taskData) => {
+        const response = await API.put(`/api/projects/tasks/${taskId}`, taskData);
+        return response.data;
+    },
+
+    deleteTask: async (projectId, taskId) => {
+        const response = await API.delete(`/api/projects/tasks/${taskId}`);
+        return response.data;
+    },
 
     //liste des taches d'un ingénieur
     getMesTaches: async (ingenieurId) => {
@@ -72,6 +81,10 @@ export const projectService = {
         // Sinon, on laisse remonter l'erreur pour qu'elle soit affichée dans le composant
         throw err;
     }
-}
+},
+getTasks: async (projectId) => {
+        const response = await API.get(`/api/projects/tasks/project/${projectId}`);
+        return response.data;
+    },
 
 };

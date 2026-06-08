@@ -11,6 +11,8 @@ import ProjectList from './components/ProjectList';
 import TaskManager from './components/TaskManager';
 import CreateProjectForm from './components/CreateProjectForm';
 import DashboardLayout from './components/layouts/DashboardLayout';
+import Dashboard from './components/Dashboard';
+import SuperviseurDashboard from './components/SuperviseurDashboard';
 
 function App() {
   return (
@@ -31,6 +33,11 @@ function App() {
           {/* Routes Ingénieur */}
           <Route path="/ingenieur/dashboard" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><IngenieurDashboard /></ProtectedRoute>} />
           <Route path="/ingenieur/taches" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><IngenieurTasks /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['CHEF_PROJET', 'ADMIN','SUPERVISEUR']}><Dashboard /></ProtectedRoute>} />
+
+          {/* Routes SUPERVISEUR */}
+          <Route path="/superviseur/dashboard" element={<ProtectedRoute allowedRoles={['SUPERVISEUR']}><SuperviseurDashboard /></ProtectedRoute>} />
+          
         </Route>
         
         <Route path="*" element={<h2>Erreur 404 - Page introuvable</h2>} />
