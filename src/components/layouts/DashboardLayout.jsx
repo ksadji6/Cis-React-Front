@@ -118,6 +118,13 @@ export default function DashboardLayout() {
             <i className="ti ti-list-check" aria-hidden="true"></i>
             Mes tâches
           </div>
+          <div
+            className={`cis-nav-item ${isActive('/ingenieur/projets') ? accentClass : ''}`}
+            onClick={() => navigate('/ingenieur/projets')}
+          >
+            <i className="ti ti-list-check" aria-hidden="true"></i>
+            Mes projets
+          </div>
         </>
       );
     }
@@ -168,6 +175,13 @@ export default function DashboardLayout() {
             onClick={() => navigate('/dashboard')}>
             <i className="ti ti-chart-pie" aria-hidden="true"></i>
             Statistiques
+          </div>
+          <div
+            className={`cis-nav-item ${isActive('/admin/projects/list') ? accentClass : ''}`}
+            onClick={() => navigate('/admin/projects/list')}
+          >
+            <i className="ti ti-folder" aria-hidden="true"></i>
+            Projets
           </div>
 
         </>

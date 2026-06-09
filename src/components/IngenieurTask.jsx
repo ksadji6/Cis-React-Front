@@ -12,7 +12,7 @@ export default function IngenieurTask() {
   const [filterStatut, setFilterStatut] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
 
-  useEffect(() => {
+  /*useEffect(() => {
     let isMounted = true;
     const load = async () => {
       try {
@@ -27,11 +27,40 @@ export default function IngenieurTask() {
     load();
     return () => { isMounted = false; };
   }, []);
+*/
+useEffect(() => {
+    let isMounted = true;
+    
+    // 1. Récupération sécurisée du user
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = userData.user || userData; 
 
+    const load = async () => {
+        // 2. Vérification critique avant l'appel
+        if (!user || !user.id) {
+            console.error("ID utilisateur introuvable dans le localStorage");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // 3. Appel avec le vrai ID
+            const data = await projectService.getMesTaches(user.id);
+            if (isMounted) setTaches(Array.isArray(data) ? data : []);
+        } catch (e) {
+            console.error("Erreur API:", e);
+        } finally {
+            if (isMounted) setLoading(false);
+        }
+    };
+    
+    load();
+    return () => { isMounted = false; };
+}, []);
   const handleStatusChange = async (task, newStatut) => {
     setUpdatingId(task.id);
     try {
-      await projectService.updateTaskStatus(task.projetId, task.id, { ...task, statut: newStatut });
+      await projectService.updateTaskStatus(task.id, newStatut );
       setTaches(prev => prev.map(t => t.id === task.id ? { ...t, statut: newStatut } : t));
     } catch (e) {
       console.error(e);
@@ -109,18 +138,29 @@ export default function IngenieurTask() {
               borderLeft:`4px solid ${STATUT_BORDER[t.statut]}`,
             }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-                <h3 style={{ fontSize:13, fontWeight:600, color:'#1a1a2a', flex:1, marginRight:8 }}>{t.titre}</h3>
+                <h3 style={{ fontSize:13, fontWeight:600, color:'#1a1a2a', flex:1, marginRight:8 }}>{t.intitule}</h3>
                 <span className={`cis-badge ${STATUT_BADGE[t.statut]}`}>{STATUT_LABEL[t.statut]}</span>
               </div>
 
-              {t.description && (
-                <p style={{ fontSize:12, color:'#777', marginBottom:10, lineHeight:1.5 }}>{t.description}</p>
+              {t.projectTitle && (
+                <p style={{ fontSize:12, color:'#777', marginBottom:10, lineHeight:1.5 }}>Projet: {t.projectTitle}</p>
               )}
 
-              {(t.dateDebut || t.dateFin) && (
-                <div style={{ fontSize:11, color:'#aaa', marginBottom:10, display:'flex', gap:8 }}>
-                  {t.dateDebut && <span><i className="ti ti-calendar-event" aria-hidden="true" style={{ marginRight:3 }}></i>{t.dateDebut.substring(0, 10)}</span>}
-                  {t.dateFin && <span>→ {t.dateFin.substring(0, 10)}</span>}
+              {(t.dateCreation || t.dateFin) && (
+                <div style={{ fontSize: 11, color: '#aaa', marginBottom: 10, display: 'flex', gap: 8 }}>
+                  {t.dateCreation && (
+                    <span>
+                      <i className="ti ti-calendar-event" aria-hidden="true" style={{ marginRight: 3 }}></i>
+                      {/* On convertit la chaîne ISO en format français */}
+                      {new Date(t.dateCreation).toLocaleDateString('fr-FR')}
+                    </span>
+                  )}
+                  
+                  {t.dateFin && (
+                    <span>
+                      → {new Date(t.dateFin).toLocaleDateString('fr-FR')}
+                    </span>
+                  )}
                 </div>
               )}
 

@@ -12,12 +12,35 @@ export default function IngenieurDashboard() {
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
   const user = userData?.user;
   const prenom = user?.prenom || 'Ingénieur';
+  const [projets, setProjets] = useState([]);
+
+useEffect(() => {
+    const loadData = async () => {
+        const user = JSON.parse(localStorage.getItem('user'))?.user;
+        if (user?.id) {
+            // 1. Tes tâches (ce que tu avais déjà)
+            const tasks = await projectService.getMesTaches(user.id);
+            setTaches(tasks);
+            
+            // 2. Tes projets (la nouveauté)
+            const projects = await projectService.getMesProjetsIngenieur(user.id);
+            setProjets(projects);
+        }
+    };
+    loadData();
+}, []);
 
   useEffect(() => {
     let isMounted = true;
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = userData?.user;
     const load = async () => {
+      if (!user || !user.id) {
+      console.log("Attente de l'ID utilisateur...");
+      return; 
+    }
       try {
-        const data = await projectService.getMyTasks();
+        const data = await projectService.getMesTaches(user.id);
         if (isMounted) setTaches(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error(e);
@@ -96,6 +119,7 @@ export default function IngenieurDashboard() {
           </div>
         </div>
       </div>
+      
 
       {/* Tâches actives */}
       <div className="cis-card">
@@ -115,7 +139,7 @@ export default function IngenieurDashboard() {
             {tachesUrgentes.map(t => (
               <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', background:'#f9f9f9', borderRadius:8, border:'1px solid #eee' }}>
                 <div>
-                  <div style={{ fontWeight:500, fontSize:13 }}>{t.titre}</div>
+                  <div style={{ fontWeight:500, fontSize:13 }}>{t.intitule}</div>
                   {t.dateFin && (
                     <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>
                       Échéance : {t.dateFin.substring(0, 10)}

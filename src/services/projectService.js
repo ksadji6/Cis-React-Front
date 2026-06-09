@@ -8,6 +8,22 @@ export const projectService = {
         return response.data;
     },
 
+    getMesProjets: async (idChef) => {
+    const response = await API.get(`/api/projects/mes-projets/${idChef}`);
+    return response.data;
+    },
+
+    getMesProjetsIngenieur: async (ingenieurId) => {
+    // Vérifie bien que l'URL correspond à l'annotation @GetMapping("/ingenieur/{ingenieurId}") de ton contrôleur
+    const response = await API.get(`/api/projects/ingenieur/${ingenieurId}`);
+    return response.data;
+    },
+
+    rechercherProjectById: async (id) => {
+    const response = await API.get(`/api/projects/${id}`);
+    return response.data;
+    },
+
     // recuperer tous les projets reels de la bdd
     getAllProjects: async () => {
         const response = await API.get('/api/projects');
@@ -71,8 +87,10 @@ export const projectService = {
         const response = await API.get(`/api/projects/tasks/ingenieur/${ingenieurId}`);
         return response.data;
     } catch (err) {
+        
         // Si le backend répond 403, on redirige vers le changement de mot de passe
-        if (err.response && err.response.status === 403) {
+        
+    if (err.response && err.response.status === 403) {
             console.warn("Accès restreint : Redirection vers le changement de mot de passe.");
             window.location.href = "/update-password";
             // On retourne un tableau vide pour que le composant ne plante pas en attendant

@@ -19,6 +19,15 @@ function ProtectedRoute({ children, allowedRoles})
     const userData = JSON.parse(userString);
     const userRole = userData.user ? userData.user.role : null;
 
+    const user = userData.user || userData;
+
+    const isFirstLogin = user.isFirstLogin === true || user.firstLogin === true;
+    console.log("DEBUG ROLE:", user.role, " - FirstLogin Flag:", user.isFirstLogin);
+    // --- NOUVEAU : Blocage forcé si première connexion ---
+    if (isFirstLogin) {
+        return <Navigate to="/update-password" replace />;
+    }
+
     //on verifie si le role est autorisée à acceder a la page 
     if (allowedRoles && !allowedRoles.includes(userRole)){
         //si le user n'a pas le bon role cad accès à cette page, on redirige vers la page d'accès refusé
@@ -27,14 +36,8 @@ function ProtectedRoute({ children, allowedRoles})
     }
 
 
-    const user = userData.user;
-
-    // --- NOUVEAU : Blocage forcé si première connexion ---
-    if (user?.firstLogin === true) {
-        return <Navigate to="/update-password" replace />;
-    }
-
     
+ 
 
     //s'il est connecté et a le bon rôle , on le laisse poursuivre et voir la page
     return children;

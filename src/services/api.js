@@ -26,20 +26,4 @@ API.interceptors.request.use((config) => {
     
     return config;
 }, (error) => Promise.reject(error));
-/*
-API.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('user'))?.token;
-    
-    // Nettoyage basique
-    if (token) {
-        const cleanToken = token.replace(/^"|"$/g, '');
-        config.headers.Authorization = `Bearer ${cleanToken}`;
-    }
-    
-    // 💡 LOG CRITIQUE : On vérifie si la config est bien créée
-    console.log("Axios - Envoi vers :", config.url);
-    console.log("Axios - Headers :", config.headers);
-    
-    return config;
-}, (error) => Promise.reject(error));*/
 export default API;

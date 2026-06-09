@@ -201,6 +201,43 @@ body {
   background: rgba(239,68,68,0.25);
 }
 
+/* Ajoute ça dans ton fichier CSS pour tester le rendu */
+.cis-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e1e4e8;
+}
+
+.cis-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.cis-table th, .cis-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.cis-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+}
+
+.cis-btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.cis-btn-primary:hover {
+    background-color: #0056b3;
+}
 /* ============================================
    MAIN CONTENT
    ============================================ */

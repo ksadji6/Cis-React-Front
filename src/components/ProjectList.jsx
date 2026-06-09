@@ -22,25 +22,37 @@ export default function ProjectList() {
   const [filterPhase, setFilterPhase] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user'))?.user;
+  const userRole = user?.role;
 
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
-      try {
-        const [p, u] = await Promise.all([projectService.getAllProjects(), userService.getAll()]);
-        if (isMounted) {
-          setProjects(Array.isArray(p) ? p : []);
-          setUsers(Array.isArray(u) ? u : []);
+        try {
+            // 1. Récupère tous les users pour l'affichage des noms
+            const u = await userService.getAll();
+            setUsers(Array.isArray(u) ? u : []);
+
+            // 2. Logique de chargement conditionnel des projets
+            let p = [];
+            if (userRole === 'CHEF_PROJET') {
+                // Appel spécifique pour le chef de projet (tu devras créer cette méthode dans projectService)
+                p = await projectService.getMesProjets(user.id);
+            } else {
+                // Admin et Superviseur voient tout
+                p = await projectService.getAllProjects();
+            }
+
+            if (isMounted) setProjects(Array.isArray(p) ? p : []);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            if (isMounted) setLoading(false);
         }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
     };
     load();
     return () => { isMounted = false; };
-  }, []);
+}, [userRole, user.id]); 
 
   const userName = (id) => {
     const u = users.find(u => u.id === id);
@@ -118,55 +130,42 @@ export default function ProjectList() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    <div className="cis-empty">
-                      <i className="ti ti-folder-off" aria-hidden="true"></i>
-                      Aucun projet trouvé
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan={6}><div className="cis-empty">Aucun projet trouvé</div></td></tr>
               ) : filtered.map(p => {
                 const avancement = typeof p.avancement === 'number' ? p.avancement : 0;
                 const phase = PHASE_BADGE[p.phase] || { cls: 'badge-gray', label: p.phase };
+                
                 return (
                   <tr key={p.id}>
                     <td>
-                      <div style={{ fontWeight:500 }}>{p.titre || p.nom}</div>
-                      {p.description && (
-                        <div style={{ fontSize:11, color:'#aaa', marginTop:2, maxWidth:260, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {p.description}
-                        </div>
-                      )}
+                      <div style={{ cursor: 'pointer', fontWeight: 500 }} onClick={() => navigate(`/admin/projects/${p.id}`)} >{p.titre || p.nom}</div>
+                      {p.description && <div style={{ fontSize: 11, color: '#aaa' }}>{p.description}</div>}
                     </td>
                     <td><span className={`cis-badge ${phase.cls}`}>{phase.label}</span></td>
-                    <td style={{ fontSize:12, color:'#555' }}>{CAT_LABEL[p.categorie] || p.categorie || '—'}</td>
-                    <td style={{ fontSize:12 }}>{userName(p.chefProjetId)}</td>
-                    <td style={{ minWidth:120 }}>
-                      <div className="cis-progress">
-                        <div className="cis-progress-bar">
-                          <div className={`cis-progress-fill ${avancement >= 100 ? 'fill-green' : avancement >= 50 ? 'fill-blue' : 'fill-orange'}`}
-                            style={{ width:`${avancement}%` }}></div>
-                        </div>
-                        <span className="cis-progress-val" style={{ color: avancement >= 100 ? '#20ab4b' : '#333' }}>
-                          {avancement}%
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ display:'flex', justifyContent:'flex-end', gap:6 }}>
+                    <td style={{ fontSize: 12 }}>{CAT_LABEL[p.categorie] || p.categorie}</td>
+                    <td style={{ fontSize: 12 }}>{userName(p.chefProjetId)}</td>
+                    <td>{avancement}%</td>
+                    
+                    {/* --- COLONNE ACTIONS --- */}
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                        
+                        {/* Le Superviseur PEUT voir les tâches, c'est de la consultation */}
                         <button
                           className="cis-btn cis-btn-ghost cis-btn-sm"
                           onClick={() => navigate(`/admin/projects/${p.id}/tasks`)}
                         >
-                          <i className="ti ti-list-check" aria-hidden="true"></i> Tâches
+                          <i className="ti ti-list-check"></i> Consulter
                         </button>
-                        <button
-                          className="cis-btn cis-btn-danger cis-btn-sm"
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          <i className="ti ti-trash" aria-hidden="true"></i>
-                        </button>
+
+                        {/* Le bouton Nouveau projet et les actions modifiantes n'apparaissent PAS pour le Superviseur */}
+                        {(userRole === 'ADMIN' || userRole === 'CHEF_PROJET') && (
+                          <>
+                            <button className="cis-btn cis-btn-danger cis-btn-sm" onClick={() => handleDelete(p.id)}>
+                              <i className="ti ti-trash"></i>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

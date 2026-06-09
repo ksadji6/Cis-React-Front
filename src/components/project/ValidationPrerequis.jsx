@@ -1,10 +1,16 @@
 export const ValidationPrerequis = ({ project, onToggle, onLancer }) => {
+  // 1. Sécurité : Si project ou prerequis est undefined, on utilise un tableau vide
+  const prerequis = project?.prerequis || [];
+
+  // 2. Vérification : Tous les prérequis sont-ils validés ?
+  const tousValides = prerequis.length > 0 && prerequis.every(p => p.estDisponible);
+
   return (
     <div className="card">
       <h3 style={{ color: '#1e293b', marginBottom: '20px' }}>Contrôle Qualité : Prérequis</h3>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {project.prerequis.map((p) => (
+        {(project?.prerequis || []).map((p) => (
           <div key={p.id} style={{ 
             padding: '12px', 
             borderRadius: '8px', 
@@ -28,19 +34,19 @@ export const ValidationPrerequis = ({ project, onToggle, onLancer }) => {
 
       <div style={{ marginTop: '25px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
         <button 
-          disabled={!project.prerequis.every(p => p.estDisponible)}
+          disabled={!tousValides}
           onClick={() => onLancer(project.id)}
           style={{ 
             width: '100%', 
             padding: '12px', 
-            backgroundColor: project.prerequis.every(p => p.estDisponible) ? '#2563eb' : '#94a3b8',
+            backgroundColor: tousValides ? '#2563eb' : '#94a3b8',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
-            cursor: project.prerequis.every(p => p.estDisponible) ? 'pointer' : 'not-allowed'
+            cursor: tousValides ? 'pointer' : 'not-allowed'
           }}
         >
-          {project.prerequis.every(p => p.estDisponible) ? "Lancer le Projet vers Phase Exécution" : "Prérequis incomplets"}
+          {tousValides ? "Lancer le Projet vers Phase Exécution" : "Prérequis incomplets"}
         </button>
       </div>
     </div>

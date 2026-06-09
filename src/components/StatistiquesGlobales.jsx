@@ -23,7 +23,7 @@ export default function StatistiquesGlobales() {
                     datasets: [{ data: [stats.enCours, stats.termine, stats.bloque], backgroundColor: ['#36A2EB', '#4BC0C0', '#FF6384'] }]
                 }} />
             </div>
-            {/* Ajoute d'autres graphiques ici */}
+            
         </div>
     );
 }

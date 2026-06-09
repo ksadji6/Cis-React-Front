@@ -22,6 +22,8 @@ export default function TaskManager() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [filterStatut, setFilterStatut] = useState('');
+  const user = JSON.parse(localStorage.getItem('user'))?.user;
+  const userRole = user?.role;
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -135,9 +137,10 @@ export default function TaskManager() {
           <h1 className="cis-page-title">{project?.titre || project?.nom || 'Gestion des tâches'}</h1>
           <p className="cis-page-sub">{tasks.length} tâche{tasks.length > 1 ? 's' : ''} · {avancement}% complété</p>
         </div>
+        {(userRole === 'ADMIN' || userRole === 'CHEF_PROJET') && (
         <button className="cis-btn cis-btn-primary" onClick={openCreate}>
           <i className="ti ti-plus" aria-hidden="true"></i> Nouvelle tâche
-        </button>
+        </button>)}
       </div>
 
       {/* Barre de progression globale */}
@@ -211,6 +214,7 @@ export default function TaskManager() {
                   <select
                     className="cis-status-select"
                     value={t.statut}
+                    disabled={userRole === 'SUPERVISEUR'}
                     onChange={e => handleStatusChange(t, e.target.value)}
                     style={{
                       borderColor: t.statut === 'TERMINE' ? '#20ab4b' : t.statut === 'EN_COURS' ?  '#d48402' : '#ddd',
@@ -222,6 +226,7 @@ export default function TaskManager() {
                   </select>
                 </td>
                 <td>
+                  {(userRole === 'ADMIN' || userRole === 'CHEF_PROJET') && (
                   <div style={{ display:'flex', justifyContent:'flex-end', gap:6 }}>
                     <button className="cis-btn cis-btn-ghost cis-btn-sm" onClick={() => openEdit(t)}>
                       <i className="ti ti-edit" aria-hidden="true"></i>
@@ -229,7 +234,7 @@ export default function TaskManager() {
                     <button className="cis-btn cis-btn-danger cis-btn-sm" onClick={() => handleDelete(t.id)}>
                       <i className="ti ti-trash" aria-hidden="true"></i>
                     </button>
-                  </div>
+                  </div>)}
                 </td>
               </tr>
             ))}

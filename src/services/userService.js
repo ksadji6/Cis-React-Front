@@ -20,6 +20,11 @@ export const userService = {
         return response.data;
     },
 
+    getUserById: async (id) => {
+    const response = await API.get(`/api/users/id/${id}`);
+    return response.data;
+},
+
     //changer le role d'un user
     changeRole: async (id, role) => {
     const response = await API.put(`/api/users/${id}/role?role=${role}`);
