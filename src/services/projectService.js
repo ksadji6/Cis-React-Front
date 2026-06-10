@@ -42,6 +42,15 @@ export const projectService = {
         return response.data;
     },
 
+    //ajouter prerequis
+    addPrerequis: async (projectId, libelle) => {
+        const response = await API.post(`/api/projects/${projectId}/prerequis`, {
+            libelle: libelle,
+            estDisponible: false
+        });
+        return response.data;
+    },
+
     // lancer un projet pour passer a la phase projet
     lancerProjet: async (id) => {
         const response = await API.put(`/api/projects/${id}/lancer`, {});
@@ -52,6 +61,15 @@ export const projectService = {
     cloturer: async (projectId) => {
         const response = await API.put(`/api/projects/${projectId}/cloturer`);
         return response.data;
+    },
+
+    updateStatut: async (projectId, statut, commentaire = "") => {
+        return await API.put(`/api/projects/${projectId}/statut?statut=${statut}&commentaire=${commentaire}`);
+    },
+
+   delete: async (projectId) => {
+    const response = await API.delete(`/api/projects/${projectId}`);
+    return response.data;
     },
 
     // exporter le document excel
@@ -100,9 +118,16 @@ export const projectService = {
         throw err;
     }
 },
-getTasks: async (projectId) => {
+    getTasks: async (projectId) => {
         const response = await API.get(`/api/projects/tasks/project/${projectId}`);
         return response.data;
     },
+
+    togglePrerequis: async (projectId, prerequisId) => {
+    const response = await API.put(`/api/projects/${projectId}/prerequis/${prerequisId}/toggle`);
+    return response.data;
+    },
+
+    
 
 };

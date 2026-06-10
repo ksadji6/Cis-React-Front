@@ -1,47 +1,57 @@
 import { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
+import { documentService } from '../services/documentService';
+import { useNavigate } from 'react-router-dom';
 
 export default function PresalesDashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
   const [uploadMsg, setUploadMsg] = useState('');
+  const [docType, setDocType] = useState('BOM');
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
+    // Dans ton useEffect de PresalesDashboard.jsx
     const load = async () => {
-      try {
-        const data = await projectService.getAll();
+    try {
+        const data = await projectService.getAllProjects(); 
         if (isMounted) {
-          const preProjet = Array.isArray(data) ? data.filter(p => p.phase === 'PRE_PROJET') : [];
-          setProjects(preProjet);
+            // Filtrage : Phase PRE_PROJET ET le presalesId doit correspondre à l'ID de l'utilisateur connecté
+            const monID = JSON.parse(localStorage.getItem('user'))?.user?.id;
+            
+            const preProjet = Array.isArray(data) 
+                ? data.filter(p => p.phase === 'PRE_PROJET' && p.presalesId === monID) 
+                : [];
+                
+            setProjects(preProjet);
         }
-      } catch (e) {
+    } catch (e) {
         console.error(e);
-      } finally {
+    } finally {
         if (isMounted) setLoading(false);
-      }
+    }
     };
     load();
     return () => { isMounted = false; };
   }, []);
 
-  const handleFileUpload = async (projectId, file) => {
+  // Dans PresalesDashboard.jsx
+const handleFileUpload = async (projectId, file) => {
     if (!file) return;
     setUploadingId(projectId);
-    setUploadMsg('');
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      await projectService.uploadDocument(projectId, formData);
-      setUploadMsg(`Document "${file.name}" uploadé avec succès.`);
-      setTimeout(() => setUploadMsg(''), 4000);
+        // On utilise ici le state docType que tu as ajouté en haut
+        await documentService.upload(projectId, file, docType); 
+        setUploadMsg(`Document "${file.name}" uploadé avec succès.`);
     } catch (e) {
-      setUploadMsg('Erreur lors de l\'upload. Réessayez. ', e);
+        console.error(e);
+        setUploadMsg('Erreur lors de l\'upload.');
     } finally {
-      setUploadingId(null);
+        setUploadingId(null);
     }
-  };
+};
 
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
   const prenom = userData?.user?.prenom || 'Avant-Vente';
@@ -107,15 +117,26 @@ export default function PresalesDashboard() {
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {projects.map(p => (
+              
               <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', background:'#f9f9f9', borderRadius:8, border:'1px solid #eee' }}>
                 <div>
-                  <div style={{ fontWeight:500, fontSize:13 }}>{p.titre || p.nom}</div>
+                  <div style={{ cursor: 'pointer', fontWeight: 500, color: '#ec8549' }} 
+  onClick={() => navigate(`/admin/projects/${p.id}`)}>{p.titre || p.nom}</div>
                   <div style={{ fontSize:11, color:'#aaa', marginTop:2 }}>
                     {p.categorie === 'SECURITE_RESEAUX' ? 'Sécurité & Réseaux' : 'Infrastructure Système'}
                     {' · '}Créé le {p.dateCreation ? new Date(p.dateCreation).toLocaleDateString('fr-FR') : '—'}
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <select 
+                      className="cis-select" 
+                      style={{ width: '120px', fontSize: '12px', padding: '6px' }}
+                      onChange={(e) => setDocType(e.target.value)} 
+                      value={docType}
+                    >
+                      <option value="BOM">BOM</option>
+                      <option value="ARCHITECTURE">Architecture</option>
+                  </select>
                   <label style={{
                     display:'inline-flex', alignItems:'center', gap:6, padding:'7px 14px',
                     background: uploadingId === p.id ? '#e8f7ee' : '#fff',

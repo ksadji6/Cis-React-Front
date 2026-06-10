@@ -130,6 +130,7 @@ export default function TaskManager() {
     <div>
       {/* Header */}
       <div className="cis-page-header">
+
         <div>
           <button onClick={() => navigate(-1)} style={{ background:'none', border:'none', cursor:'pointer', color:'#888', fontSize:12, marginBottom:6, display:'flex', alignItems:'center', gap:4 }}>
             <i className="ti ti-arrow-left" aria-hidden="true"></i> Retour
@@ -137,11 +138,24 @@ export default function TaskManager() {
           <h1 className="cis-page-title">{project?.titre || project?.nom || 'Gestion des tâches'}</h1>
           <p className="cis-page-sub">{tasks.length} tâche{tasks.length > 1 ? 's' : ''} · {avancement}% complété</p>
         </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+    {/* BOUTON D'ACTION RAPIDE (si 100%, on guide vers le projet pour clôturer) */}
+    {avancement === 100 && (
+      <button 
+        className="cis-btn" 
+        style={{ background: '#cd4100', color: 'white' }}
+        onClick={() => navigate(`/admin/projects/${projectId}`)}
+      >
+        <i className="ti ti-check" aria-hidden="true"></i> Projet terminé : aller clôturer
+      </button>
+    )}
         {(userRole === 'ADMIN' || userRole === 'CHEF_PROJET') && (
         <button className="cis-btn cis-btn-primary" onClick={openCreate}>
           <i className="ti ti-plus" aria-hidden="true"></i> Nouvelle tâche
         </button>)}
-      </div>
+  </div>
+</div>
+    
 
       {/* Barre de progression globale */}
       <div className="cis-card" style={{ marginBottom:16 }}>
@@ -182,7 +196,9 @@ export default function TaskManager() {
               <th>Assigné à</th>
               <th>Période</th>
               <th>Statut</th>
+              {userRole !== 'SUPERVISEUR' && (
               <th style={{ textAlign:'right' }}>Actions</th>
+              )}
             </tr>
           </thead>
           <tbody>

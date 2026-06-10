@@ -52,7 +52,8 @@ export const DetailProjetIngenieur = () => {
                 <DocumentSection 
                     projectId={id} 
                     documents={project.documents || []} 
-                    userRole="INGENIEUR" 
+                    userRole="INGENIEUR"
+                    phase={project.phase}
                     onUploadSuccess={fetchProject} 
                 />
             </div>

@@ -141,12 +141,10 @@ export default function DashboardLayout() {
             Dashboard
           </div>
           <div
-            className={`cis-nav-item ${isActive('/presales/projects') ? accentClass : ''}`}
-            onClick={() => navigate('/presales/projects')}
-          >
-            <i className="ti ti-upload" aria-hidden="true"></i>
-            Mes projets
-          </div>
+        className={`cis-nav-item ${isActive('/admin/projects/list') ? accentClass : ''}`}
+        onClick={() => navigate('/admin/projects/list')}>
+        <i className="ti ti-folder"></i> Tous les projets
+      </div>
         </>
       );
     }

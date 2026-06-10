@@ -1,7 +1,7 @@
 import React, { useState, useEffect} from 'react';
 import { documentService } from '../services/documentService'; // À créer
 
-export default function DocumentSection({ projectId, documents, userRole, onUploadSuccess }) {
+export default function DocumentSection({ projectId, documents, userRole, phase, onUploadSuccess }) {
   const [file, setFile] = useState(null);
   const [type, setType] = useState('BOM');
 
@@ -34,6 +34,11 @@ export default function DocumentSection({ projectId, documents, userRole, onUplo
   return ['BOM', 'ARCHITECTURE', 'PV_RECETTE', 'EXPLOITATION'];
 };
 
+  const canUpload = (role, phase) => {
+    if (phase === 'PRE_PROJET') return role === 'PRESALES';
+    if (phase === 'POST_PROJET') return role === 'INGENIEUR';
+    return false; 
+  };
   useEffect(() => {
   const types = getAvailableTypes();
   if (!types.includes(type)) {
@@ -48,7 +53,7 @@ export default function DocumentSection({ projectId, documents, userRole, onUplo
       </div>
       
       {/* Zone upload stylée */}
-      {(userRole === 'PRESALES' || userRole === 'INGENIEUR' || userRole === 'CHEF_PROJET') && (
+      {canUpload(userRole, phase) && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: '#f9f9f9', padding: '15px', borderRadius: '8px' }}>
           <input type="file" className="cis-input" style={{ flex: 1 }} onChange={(e) => setFile(e.target.files[0])} />
           <select className="cis-select" style={{ width: '150px' }} value={type} onChange={(e) => setType(e.target.value)}>

@@ -21,6 +21,7 @@ export default function ProjectList() {
   const [search, setSearch] = useState('');
   const [filterPhase, setFilterPhase] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [filterStatut, setFilterStatut] = useState('');
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'))?.user;
   const userRole = user?.role;
@@ -29,18 +30,21 @@ export default function ProjectList() {
     let isMounted = true;
     const load = async () => {
         try {
-            // 1. Récupère tous les users pour l'affichage des noms
             const u = await userService.getAll();
             setUsers(Array.isArray(u) ? u : []);
 
-            // 2. Logique de chargement conditionnel des projets
             let p = [];
+            // Logique de filtrage par rôle côté client pour plus de simplicité
+            const all = await projectService.getAllProjects();
+            
             if (userRole === 'CHEF_PROJET') {
-                // Appel spécifique pour le chef de projet (tu devras créer cette méthode dans projectService)
-                p = await projectService.getMesProjets(user.id);
+                p = all.filter(proj => proj.chefProjetId === user.id);
+            } else if (userRole === 'PRESALES') {
+                // Le presales ne voit que ses projets
+                p = all.filter(proj => proj.presalesId === user.id);
             } else {
-                // Admin et Superviseur voient tout
-                p = await projectService.getAllProjects();
+                // Admin, Superviseur voient tout
+                p = all;
             }
 
             if (isMounted) setProjects(Array.isArray(p) ? p : []);
@@ -52,7 +56,7 @@ export default function ProjectList() {
     };
     load();
     return () => { isMounted = false; };
-}, [userRole, user.id]); 
+}, [userRole, user.id]);
 
   const userName = (id) => {
     const u = users.find(u => u.id === id);
@@ -84,11 +88,14 @@ export default function ProjectList() {
           <h1 className="cis-page-title">Projets & Tâches</h1>
           <p className="cis-page-sub">{projects.length} projet{projects.length > 1 ? 's' : ''} dans le portefeuille</p>
         </div>
+        {(userRole=== 'CHEF_PROJET' || userRole=== 'ADMIN' ) && (
+          <>
         <button className="cis-btn cis-btn-primary" onClick={() => navigate('/admin/projects/create')}>
           <i className="ti ti-plus" aria-hidden="true"></i> Nouveau projet
         </button>
+        </>)}
       </div>
-
+      
       {/* Filtres */}
       <div className="cis-filters">
         <input
@@ -108,6 +115,12 @@ export default function ProjectList() {
           <option value="SECURITE_RESEAUX">Sécurité & Réseaux</option>
           <option value="INFRASTRUCTURE_SYSTEME">Infrastructure Système</option>
         </select>
+        <select className="cis-filter-select" value={filterStatut} onChange={e => setFilterStatut(e.target.value)}>
+            <option value="">Tous les statuts</option>
+            <option value="EN_COURS">En cours</option>
+            <option value="BLOQUE">Bloqué</option>
+            <option value="TERMINE">Terminé</option>
+        </select>
       </div>
 
       {loading ? (
@@ -122,10 +135,15 @@ export default function ProjectList() {
               <tr>
                 <th>Projet</th>
                 <th>Phase</th>
+                <th>Statut</th>
                 <th>Catégorie</th>
                 <th>Chef de Projet</th>
+                
                 <th>Avancement</th>
+                {(userRole!== 'PRESALES' ) && (
+                <>
                 <th style={{ textAlign:'right' }}>Actions</th>
+                </>)}
               </tr>
             </thead>
             <tbody>
@@ -142,6 +160,16 @@ export default function ProjectList() {
                       {p.description && <div style={{ fontSize: 11, color: '#aaa' }}>{p.description}</div>}
                     </td>
                     <td><span className={`cis-badge ${phase.cls}`}>{phase.label}</span></td>
+                    <td>
+                      <span className={`cis-badge status-${p.statut?.toLowerCase()}`}>
+                        {p.statut || 'N/A'}
+                      </span>
+                      {p.statut === 'BLOQUE' && p.commentaireBloquant && (
+                        <div style={{ fontSize: '10px', color: '#d9534f', marginTop: '2px' }}>
+                          {p.commentaireBloquant.substring(0, 20)}...
+                        </div>
+                      )}
+                    </td>
                     <td style={{ fontSize: 12 }}>{CAT_LABEL[p.categorie] || p.categorie}</td>
                     <td style={{ fontSize: 12 }}>{userName(p.chefProjetId)}</td>
                     <td>{avancement}%</td>
@@ -151,13 +179,15 @@ export default function ProjectList() {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                         
                         {/* Le Superviseur PEUT voir les tâches, c'est de la consultation */}
+                         {(userRole!== 'PRESALES' ) && (
+                          <>
                         <button
                           className="cis-btn cis-btn-ghost cis-btn-sm"
                           onClick={() => navigate(`/admin/projects/${p.id}/tasks`)}
                         >
                           <i className="ti ti-list-check"></i> Consulter
                         </button>
-
+                          </>)}
                         {/* Le bouton Nouveau projet et les actions modifiantes n'apparaissent PAS pour le Superviseur */}
                         {(userRole === 'ADMIN' || userRole === 'CHEF_PROJET') && (
                           <>

@@ -5,7 +5,7 @@ import { userService } from '../services/userService';
 
 const CATEGORIES = [
   { value: 'SECURITE_RESEAUX', label: 'Sécurité & Réseaux' },
-  { value: 'INFRASTRUCTURE_SYSTEME', label: 'Infrastructure Système' },
+  { value: 'INFRA_SYSTEME', label: 'Infrastructure Système' },
 ];
 
 export default function CreateProjectForm() {
@@ -24,10 +24,14 @@ export default function CreateProjectForm() {
     description: '',
     categorie: 'SECURITE_RESEAUX',
     chefProjetId: '',
+    presalesId: '',  
+    superviseurId: '',
     dateDebut: '',
     dateFin: '',
   });
   const [chefs, setChefs] = useState([]);
+  const [presales, setPresales] = useState([]);
+  const [superviseurs, setSuperviseurs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,6 +41,8 @@ export default function CreateProjectForm() {
         const users = await userService.getAll();
         const chefsOnly = users.filter(u => u.role === 'CHEF_PROJET');
         setChefs(chefsOnly);
+        setPresales(users.filter(u => u.role === 'PRESALES'));
+        setSuperviseurs(users.filter(u => u.role === 'SUPERVISEUR'));
       } catch (e) {
         console.error(e);
       }
@@ -53,23 +59,33 @@ export default function CreateProjectForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const loggedInId = currentUser?.user?.id;
-    const chefIdFinal = isChefProjet ? loggedInId : formData.chefProjetId;
+    
+    // Validation des champs requis
     if (!formData.titre) { setError('Le titre est obligatoire.'); return; }
-    if (!chefIdFinal) { setError('Veuillez sélectionner un Chef de Projet.'); return; }
-
-    const finalChefIdParsed = parseInt(chefIdFinal, 10);
-    if (isNaN(finalChefIdParsed)) { setError('ID Chef de Projet invalide.'); return; }
+    if (!formData.chefProjetId) { setError('Veuillez sélectionner un Chef de Projet.'); return; }
+    if (!formData.presalesId) { setError('Veuillez sélectionner un membre Avant-Vente.'); return; }
+    if (!formData.superviseurId) { setError('Veuillez sélectionner un superviseur.'); return; }
 
     setSaving(true);
     setError('');
+
     try {
-      await projectService.create({
-        ...formData,
-        chefProjetId: finalChefIdParsed,
-      });
+      const payload = {
+        titre: formData.titre,
+        description: formData.description,
+        categorie: formData.categorie, // Correspond aux valeurs de l'enum
+        chefProjetId: parseInt(formData.chefProjetId, 10),
+        presalesId: parseInt(formData.presalesId, 10),
+        superviseurId: parseInt(formData.superviseurId, 10),
+        // Budget et date sont optionnels dans le formulaire pour l'instant
+        budget: 0.0, 
+        dateFinEstimee: formData.dateFin ? new Date(formData.dateFin).toISOString() : null
+      };
+
+      await projectService.create(payload);
       navigate('/admin/projects/list');
     } catch (e) {
+      console.error("Erreur détaillée:", e.response?.data);
       setError(e?.response?.data?.message || 'Erreur lors de la création du projet.');
     } finally {
       setSaving(false);
@@ -191,6 +207,23 @@ export default function CreateProjectForm() {
                 onChange={e => handleChange('dateFin', e.target.value)}
               />
             </div>
+          </div>
+          {/* Presales */}
+          <div className="cis-form-group">
+            <label className="cis-label">Avant-Vente (Presales) *</label>
+            <select className="cis-select" value={formData.presalesId} onChange={e => handleChange('presalesId', e.target.value)}>
+              <option value="">— Sélectionner un membre Presales —</option>
+              {presales.map(u => <option key={u.id} value={u.id}>{u.prenom} {u.nom}</option>)}
+            </select>
+          </div>
+
+          {/* Superviseur */}
+          <div className="cis-form-group">
+            <label className="cis-label">Superviseur *</label>
+            <select className="cis-select" value={formData.superviseurId} onChange={e => handleChange('superviseurId', e.target.value)}>
+              <option value="">— Sélectionner un superviseur —</option>
+              {superviseurs.map(u => <option key={u.id} value={u.id}>{u.prenom} {u.nom}</option>)}
+            </select>
           </div>
 
           {/* Actions */}

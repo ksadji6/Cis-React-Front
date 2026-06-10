@@ -161,12 +161,24 @@ export default function SuperviseurDashboard() {
       <div className="cis-card">
         <div className="cis-card-title">Charge de travail par ingénieur</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-          {Object.entries(chargeTravailParIngenieur).map(([ingId, map]) => (
-            <div key={ingId} style={{ padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
+        {Object.entries(chargeTravailParIngenieur).map(([ingId, map]) => {
+          const nbTaches = Object.values(map).reduce((a, b) => a + b, 0);
+          const estSurcharge = nbTaches > 5; // Seuil arbitraire de surcharge
+
+          return (
+            <div key={ingId} style={{ 
+                padding: 12, 
+                background: estSurcharge ? '#fff0f0' : '#f9f9f9', 
+                border: estSurcharge ? '1px solid #ef4444' : '1px solid #eee',
+                borderRadius: 8 
+            }}>
               <div style={{ fontSize: 12, fontWeight: 600 }}>{obtenirNomIngenieur(ingId)}</div>
-              <div style={{ fontSize: 11, color: '#888' }}>{Object.values(map).reduce((a, b) => a + b, 0)} tâches</div>
+              <div style={{ fontSize: 11, color: estSurcharge ? '#c0392b' : '#888' }}>
+                {nbTaches} tâche{nbTaches > 1 ? 's' : ''} en cours
+              </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       </div>
     </div>

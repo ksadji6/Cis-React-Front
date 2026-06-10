@@ -16,6 +16,8 @@ import SuperviseurDashboard from './components/SuperviseurDashboard';
 import { DetailProjet } from './components/DetailsProjet';
 import { MesProjetsPage } from './components/MesProjetsPage';
 import { DetailProjetIngenieur } from './components/DetailProjetIngenieur';
+import PresalesDashboard from './components/PresalesDashboard';
+import RapportSuperviseur from './components/RapportSuperviseur';
 
 function App() {
   return (
@@ -30,21 +32,23 @@ function App() {
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['ADMIN']}><UserManagement /></ProtectedRoute>} />
           <Route path="/cprojet/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF_PROJET']}><ChefProjetDashboard /></ProtectedRoute>} />
           <Route path="/admin/projects/create" element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF_PROJET']}><CreateProjectForm /></ProtectedRoute>} />
-          <Route path="/admin/projects/list" element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF_PROJET', 'SUPERVISEUR']}><ProjectList /></ProtectedRoute>} />
+          <Route path="/admin/projects/list" element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF_PROJET', 'SUPERVISEUR', 'PRESALES']}><ProjectList /></ProtectedRoute>} />
           <Route path="/admin/projects/:projectId/tasks" element={<TaskManager />} />
           
           {/* Routes Ingénieur */}
           <Route path="/ingenieur/dashboard" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><IngenieurDashboard /></ProtectedRoute>} />
           <Route path="/ingenieur/taches" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><IngenieurTasks /></ProtectedRoute>} />
           <Route path="/ingenieur/projets" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><MesProjetsPage /></ProtectedRoute>} />
-                    <Route path="/ingenieur/projets/:id" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><DetailProjetIngenieur /></ProtectedRoute>} />
+          <Route path="/ingenieur/projets/:id" element={<ProtectedRoute allowedRoles={['INGENIEUR']}><DetailProjetIngenieur /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['CHEF_PROJET', 'ADMIN','SUPERVISEUR']}><Dashboard /></ProtectedRoute>} />
 
           {/* Routes SUPERVISEUR */}
           <Route path="/superviseur/dashboard" element={<ProtectedRoute allowedRoles={['SUPERVISEUR']}><SuperviseurDashboard /></ProtectedRoute>} />
-          
-          <Route path="/admin/projects/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF_PROJET', 'SUPERVISEUR']}><DetailProjet /></ProtectedRoute>
-} />
+          <Route path="/superviseur/rapports" element={<ProtectedRoute allowedRoles={['SUPERVISEUR', 'ADMIN']}><RapportSuperviseur /></ProtectedRoute>} />
+          {/* Routes PRESALES */}
+          <Route path="/presales/dashboard" element={<ProtectedRoute allowedRoles={['PRESALES']}><PresalesDashboard /></ProtectedRoute>} />
+          <Route path="/presales/projects" element={<ProtectedRoute allowedRoles={['PRESALES']}><MesProjetsPage /></ProtectedRoute>} />
+          <Route path="/admin/projects/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'CHEF_PROJET', 'SUPERVISEUR', 'PRESALES', 'INGENIEUR']}><DetailProjet /></ProtectedRoute> } /> 
         </Route>
         
         <Route path="*" element={<h2>Erreur 404 - Page introuvable</h2>} />
